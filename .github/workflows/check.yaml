@@ -49,7 +49,7 @@ jobs:
                 
                 # Valider la section metadata
                 metadata = data['metadata']
-                required_metadata_fields = ['taille', 'lien_telechargement', 'date']
+                required_metadata_fields = ['size', 'link', 'day']
                 
                 for field in required_metadata_fields:
                     if field not in metadata:
@@ -57,18 +57,18 @@ jobs:
                 
                 # Valider le format de la date
                 try:
-                    datetime.strptime(metadata['date'], '%Y-%m-%d')
+                    datetime.strptime(metadata['day'], '%Y-%m-%d')
                 except ValueError:
-                    return False, f"Format de date invalide dans {file_path} (attendu: YYYY-MM-DD)"
+                    return False, f"Format de day invalide dans {file_path} (attendu: YYYY-MM-DD)"
                 
                 # Valider que le lien de téléchargement est une URL valide
                 url_pattern = re.compile(r'^https?://')
-                if not url_pattern.match(metadata['lien_telechargement']):
+                if not url_pattern.match(metadata['link']):
                     return False, f"URL de téléchargement invalide dans {file_path}"
                 
                 # Valider que la taille est un nombre ou une chaîne avec unité
-                if not isinstance(metadata['taille'], (int, float, str)):
-                    return False, f"Format de taille invalide dans {file_path}"
+                if not isinstance(metadata['size'], (int, float, str)):
+                    return False, f"Format de size invalide dans {file_path}"
                 
                 # Valider la section installation
                 installation = data['installation']
