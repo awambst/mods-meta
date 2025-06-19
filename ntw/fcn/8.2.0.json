@@ -4,5 +4,9 @@
     "size"        : "10",
     "day"         : "01/02/2003"
   },
-  "installation": "test"
+  "installation":
+  [
+    "step1",
+    "step2"
+  ]
 }
