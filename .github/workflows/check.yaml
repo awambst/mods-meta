@@ -108,7 +108,7 @@ jobs:
                     print(f"  Vérification du mod: {mod_dir.name}")
                     
                     # Chercher tous les fichiers JSON de version
-                    json_files = list(mod_dir.glob('./^[0-9]+$.^[0-9]+$.^[0-9]+$.json'))
+                    json_files = list(mod_dir.glob('[0-9]+$.[0-9]+$.[0-9]+$.json'))
                     
                     if not json_files:
                         errors.append(f"Aucun fichier de version JSON trouvé dans {game_dir.name}/{mod_dir.name}")
