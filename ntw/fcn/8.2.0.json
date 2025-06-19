@@ -1,4 +1,4 @@
 {
-  metadata: test,
-  installation: test2
+  'metadata': test,
+  'installation': test2
 }
