@@ -57,9 +57,9 @@ jobs:
                 
                 # Valider le format de la date
                 try:
-                    datetime.strptime(metadata['day'], '%Y-%m-%d')
+                    datetime.strptime(metadata['day'], '%d/%m/%Y')
                 except ValueError:
-                    return False, f"Format de day invalide dans {file_path} (attendu: YYYY-MM-DD)"
+                    return False, f"Format de day invalide dans {file_path} (attendu: DD/MM/YYYY)"
                 
                 # Valider que le lien de téléchargement est une URL valide
                 url_pattern = re.compile(r'^https?://')
