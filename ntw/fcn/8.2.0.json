@@ -1,6 +1,6 @@
 {
-  "metadata"    : "test",
-  "installation": "test2",
+  "link"        : "test2",
   "size"        : "10",
-  "day"         : "01/02/2003"
+  "day"         : "01/02/2003",
+  "installation": "test"
 }
