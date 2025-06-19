@@ -1,0 +1,170 @@
+name: Validate Repository Structure
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  validate-structure:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install jsonschema
+        
+    - name: Validate repository structure
+      run: |
+        python << 'EOF'
+        import os
+        import json
+        import sys
+        from pathlib import Path
+        import re
+        from datetime import datetime
+        
+        def validate_json_schema(file_path):
+            """Valide le contenu du fichier JSON selon les spécifications"""
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                # Vérifier la présence des sections requises
+                if 'metadata' not in data:
+                    return False, f"Section 'metadata' manquante dans {file_path}"
+                
+                if 'installation' not in data:
+                    return False, f"Section 'installation' manquante dans {file_path}"
+                
+                # Valider la section metadata
+                metadata = data['metadata']
+                required_metadata_fields = ['taille', 'lien_telechargement', 'date']
+                
+                for field in required_metadata_fields:
+                    if field not in metadata:
+                        return False, f"Champ '{field}' manquant dans metadata de {file_path}"
+                
+                # Valider le format de la date
+                try:
+                    datetime.strptime(metadata['date'], '%Y-%m-%d')
+                except ValueError:
+                    return False, f"Format de date invalide dans {file_path} (attendu: YYYY-MM-DD)"
+                
+                # Valider que le lien de téléchargement est une URL valide
+                url_pattern = re.compile(r'^https?://')
+                if not url_pattern.match(metadata['lien_telechargement']):
+                    return False, f"URL de téléchargement invalide dans {file_path}"
+                
+                # Valider que la taille est un nombre ou une chaîne avec unité
+                if not isinstance(metadata['taille'], (int, float, str)):
+                    return False, f"Format de taille invalide dans {file_path}"
+                
+                # Valider la section installation
+                installation = data['installation']
+                if not isinstance(installation, list) or len(installation) == 0:
+                    return False, f"Section 'installation' doit être une liste non-vide dans {file_path}"
+                
+                return True, "OK"
+                
+            except json.JSONDecodeError as e:
+                return False, f"Erreur JSON dans {file_path}: {e}"
+            except Exception as e:
+                return False, f"Erreur lors de la validation de {file_path}: {e}"
+        
+        def validate_repository_structure():
+            """Valide la structure complète du repository"""
+            errors = []
+            root_path = Path('.')
+            
+            # Chercher tous les dossiers de jeux (niveau 1)
+            game_dirs = [d for d in root_path.iterdir() if d.is_dir() and not d.name.startswith('.')]
+            
+            if not game_dirs:
+                errors.append("Aucun dossier de jeu trouvé à la racine")
+                return errors
+            
+            for game_dir in game_dirs:
+                print(f"Vérification du jeu: {game_dir.name}")
+                
+                # Chercher tous les dossiers de mods dans le jeu
+                mod_dirs = [d for d in game_dir.iterdir() if d.is_dir()]
+                
+                if not mod_dirs:
+                    errors.append(f"Aucun dossier de mod trouvé dans {game_dir.name}")
+                    continue
+                
+                for mod_dir in mod_dirs:
+                    print(f"  Vérification du mod: {mod_dir.name}")
+                    
+                    # Chercher tous les fichiers JSON de version
+                    json_files = list(mod_dir.glob('v*.json'))
+                    
+                    if not json_files:
+                        errors.append(f"Aucun fichier de version JSON trouvé dans {game_dir.name}/{mod_dir.name}")
+                        continue
+                    
+                    # Valider chaque fichier JSON
+                    for json_file in json_files:
+                        # Vérifier le format du nom de fichier
+                        if not re.match(r'^v\d+\.\d+\.json$', json_file.name):
+                            errors.append(f"Format de nom de fichier invalide: {json_file.relative_to(root_path)} (attendu: vX.Y.json)")
+                            continue
+                        
+                        print(f"    Validation de: {json_file.name}")
+                        is_valid, message = validate_json_schema(json_file)
+                        
+                        if not is_valid:
+                            errors.append(message)
+            
+            return errors
+        
+        # Exécuter la validation
+        print("=== Validation de la structure du repository ===")
+        errors = validate_repository_structure()
+        
+        if errors:
+            print("\n❌ Erreurs détectées:")
+            for error in errors:
+                print(f"  - {error}")
+            sys.exit(1)
+        else:
+            print("\n✅ Structure du repository validée avec succès!")
+            print("✅ Tous les fichiers JSON sont conformes aux spécifications!")
+        
+        EOF
+        
+    - name: Generate structure report
+      if: success()
+      run: |
+        echo "## 📋 Rapport de structure" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Structure validée avec succès**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🎮 Jeux détectés:" >> $GITHUB_STEP_SUMMARY
+        find . -maxdepth 1 -type d ! -name ".*" ! -name "." | sort | while read game; do
+          if [ "$game" != "." ]; then
+            game_name=$(basename "$game")
+            echo "- **$game_name**" >> $GITHUB_STEP_SUMMARY
+            find "$game" -maxdepth 1 -type d ! -name ".*" | sort | while read mod; do
+              mod_name=$(basename "$mod")
+              if [ "$mod_name" != "$game_name" ]; then
+                echo "  - $mod_name" >> $GITHUB_STEP_SUMMARY
+                find "$mod" -name "v*.json" | sort | while read version; do
+                  version_name=$(basename "$version")
+                  echo "    - $version_name" >> $GITHUB_STEP_SUMMARY
+                done
+              fi
+            done
+          fi
+        done
