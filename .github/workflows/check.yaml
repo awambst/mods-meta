@@ -117,8 +117,8 @@ jobs:
                     # Valider chaque fichier JSON
                     for json_file in json_files:
                         # Vérifier le format du nom de fichier
-                        if not re.match(r'^v\d+\.\d+\.json$', json_file.name):
-                            errors.append(f"Format de nom de fichier invalide: {json_file.relative_to(root_path)} (attendu: vX.Y.json)")
+                        if not re.match(r'\d+\.\d+\.\d+\.json$', json_file.name):
+                            errors.append(f"Format de nom de fichier invalide: {json_file.relative_to(root_path)} (expected: X.Y.Z.json)")
                             continue
                         
                         print(f"    Validation de: {json_file.name}")
